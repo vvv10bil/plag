@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<title>Метрики документа</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #f3f4f6;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 24px;
+    padding: 32px 24px;
+  }
+
+  /* ===== Card ===== */
+  .card {
+    width: 360px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    padding: 20px 20px 24px;
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 18px;
+  }
+  .card-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #0b2a3b;
+    line-height: 1.2;
+  }
+  .card-header .subtitle {
+    font-size: 13px;
+    color: #8a96a3;
+    margin-top: 4px;
+  }
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #8a96a3;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+  }
+
+  .word-count {
+    text-align: center;
+    font-size: 15px;
+    color: #0b2a3b;
+    margin: 6px 0 16px;
+  }
+  .word-count strong { font-weight: 700; }
+
+  .metric {
+    background: #f5f6f8;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .metric-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .ring {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+  }
+  .ring svg { transform: rotate(-90deg); }
+  .ring .bg { fill: none; stroke: #e6e8ec; stroke-width: 8; }
+  .ring .fg { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.4s; }
+  .ring .pct {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0b2a3b;
+  }
+  .metric-text .label {
+    font-size: 12px;
+    color: #8a96a3;
+    margin-bottom: 2px;
+  }
+  .metric-text .value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0b2a3b;
+    line-height: 1.3;
+  }
+
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 11px;
+    border-radius: 999px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    font-family: inherit;
+  }
+  .btn-locked { background: #c9cdd3; color: #fff; }
+  .btn-action {
+    background: #fff;
+    color: #0b2a3b;
+    border: 1.5px solid #0b2a3b;
+  }
+  .btn-unlock-all {
+    background: #2dd47a;
+    color: #fff;
+    margin-top: 16px;
+    padding: 14px;
+    font-size: 15px;
+  }
+
+  /* ring colors */
+  .ring.ai .fg     { stroke: #6a3df0; }
+  .ring.plag .fg   { stroke: #ef5a5a; }
+  .ring.trans .fg  { stroke: #f5d028; }
+
+  /* ===== Side panel ===== */
+  .panel {
+    width: 340px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    padding: 20px;
+  }
+  .panel h3 {
+    margin: 0 0 12px;
+    font-size: 16px;
+    color: #0b2a3b;
+  }
+  .panel label {
+    display: block;
+    font-size: 13px;
+    color: #5b6470;
+    margin: 14px 0 6px;
+    font-weight: 600;
+  }
+  .panel textarea {
+    width: 100%;
+    min-height: 110px;
+    border: 1px solid #d8dde3;
+    border-radius: 10px;
+    padding: 10px;
+    font: inherit;
+    font-size: 13px;
+    resize: vertical;
+    outline: none;
+  }
+  .panel textarea:focus { border-color: #6a3df0; }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .slider-row input[type=range] { flex: 1; }
+  .slider-row .val {
+    width: 44px;
+    text-align: right;
+    font-weight: 700;
+    color: #0b2a3b;
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: #e6e8ec;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #6a3df0;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #6a3df0;
+    cursor: pointer;
+    border: 2px solid #fff;
+  }
+  .slider-row.plag  input[type=range]::-webkit-slider-thumb { background: #ef5a5a; }
+  .slider-row.plag  input[type=range]::-moz-range-thumb     { background: #ef5a5a; }
+  .slider-row.trans input[type=range]::-webkit-slider-thumb { background: #f5d028; }
+  .slider-row.trans input[type=range]::-moz-range-thumb     { background: #f5d028; }
+
+  .panel .filename-input {
+    width: 100%;
+    border: 1px solid #d8dde3;
+    border-radius: 10px;
+    padding: 10px;
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+  }
+  .panel .filename-input:focus { border-color: #6a3df0; }
+</style>
+</head>
+<body>
+
+<!-- ===== Картка з метриками ===== -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h2 id="docTitle">coursework (1).docx</h2>
+      <div class="subtitle" id="docTime">1 година тому</div>
+    </div>
+    <button class="close-btn">×</button>
+  </div>
+
+  <div class="word-count">
+    <strong id="wordCount">0</strong> слів у документі
+  </div>
+
+  <!-- AI -->
+  <div class="metric">
+    <div class="metric-top">
+      <div class="ring ai">
+        <svg width="72" height="72">
+          <circle class="bg" cx="36" cy="36" r="30"></circle>
+          <circle class="fg" cx="36" cy="36" r="30"
+                  stroke-dasharray="188.5" stroke-dashoffset="188.5"></circle>
+        </svg>
+        <div class="pct" data-pct="ai">0%</div>
+      </div>
+      <div class="metric-text">
+        <div class="label">Перевірка ШІ</div>
+        <div class="value">Текст із допомогою штучного інтелекту</div>
+      </div>
+    </div>
+    <button class="btn btn-locked">Розблокувати звіт</button>
+    <button class="btn btn-action">Олюднити текст</button>
+  </div>
+
+  <!-- Plagiarism -->
+  <div class="metric">
+    <div class="metric-top">
+      <div class="ring plag">
+        <svg width="72" height="72">
+          <circle class="bg" cx="36" cy="36" r="30"></circle>
+          <circle class="fg" cx="36" cy="36" r="30"
+                  stroke-dasharray="188.5" stroke-dashoffset="188.5"></circle>
+        </svg>
+        <div class="pct" data-pct="plag">0%</div>
+      </div>
+      <div class="metric-text">
+        <div class="label">Перевірка на плагіат</div>
+        <div class="value" id="plagText">Низький ризик плагіату</div>
+      </div>
+    </div>
+    <button class="btn btn-locked">Розблокувати звіт</button>
+    <button class="btn btn-action">Видалити плагіат</button>
+  </div>
+
+  <!-- Translation -->
+  <div class="metric">
+    <div class="metric-top">
+      <div class="ring trans">
+        <svg width="72" height="72">
+          <circle class="bg" cx="36" cy="36" r="30"></circle>
+          <circle class="fg" cx="36" cy="36" r="30"
+                  stroke-dasharray="188.5" stroke-dashoffset="188.5"></circle>
+        </svg>
+        <div class="pct" data-pct="trans">0%</div>
+      </div>
+      <div class="metric-text">
+        <div class="label">Виявлення перекладеного тексту</div>
+        <div class="value" id="transText">Низький ризик плагіату</div>
+      </div>
+    </div>
+    <button class="btn btn-locked">Розблокувати звіт</button>
+  </div>
+
+  <button class="btn btn-unlock-all">Розблокувати всі звіти</button>
+</div>
+
+<!-- ===== Панель керування ===== -->
+<div class="panel">
+  <h3>Параметри</h3>
+
+  <label for="filename">Назва файлу</label>
+  <input class="filename-input" id="filename" type="text" value="coursework (1).docx">
+
+  <label for="words">Список слів (документ)</label>
+  <textarea id="words" placeholder="Вставте сюди текст або список слів...">Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua</textarea>
+
+  <label>Перевірка ШІ
+    <div class="slider-row ai">
+      <input type="range" id="ai" min="0" max="100" value="41">
+      <span class="val" id="aiVal">41%</span>
+    </div>
+  </label>
+
+  <label>Перевірка на плагіат
+    <div class="slider-row plag">
+      <input type="range" id="plag" min="0" max="100" value="29">
+      <span class="val" id="plagVal">29%</span>
+    </div>
+  </label>
+
+  <label>Виявлення перекладеного тексту
+    <div class="slider-row trans">
+      <input type="range" id="trans" min="0" max="100" value="2">
+      <span class="val" id="transVal">2%</span>
+    </div>
+  </label>
+</div>
+
+<script>
+  const C = 2 * Math.PI * 30; // 188.495...
+
+  function setRing(key, pct) {
+    const ring = document.querySelector('.ring.' + key);
+    const fg = ring.querySelector('.fg');
+    fg.setAttribute('stroke-dasharray', C);
+    fg.setAttribute('stroke-dashoffset', C * (1 - pct / 100));
+    ring.querySelector('.pct').textContent = pct + '%';
+    document.getElementById(key + 'Val').textContent = pct + '%';
+  }
+
+  function plagLabel(p) {
+    if (p >= 60) return 'Надзвичайно високий ризик плагіату';
+    if (p >= 25) return 'Високий ризик плагіату';
+    if (p >= 10) return 'Помірний ризик плагіату';
+    return 'Низький ризик плагіату';
+  }
+  function aiLabel(p) {
+    if (p >= 50) return 'Текст із допомогою штучного інтелекту';
+    if (p >= 20) return 'Можливе використання ШІ';
+    return 'Текст ймовірно написаний людиною';
+  }
+  function transLabel(p) {
+    if (p >= 50) return 'Високий ризик перекладеного тексту';
+    if (p >= 20) return 'Помірний ризик перекладеного тексту';
+    return 'Низький ризик плагіату';
+  }
+
+  function countWords(text) {
+    const m = text.trim().match(/\S+/g);
+    return m ? m.length : 0;
+  }
+
+  function bind(id, onChange) {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => onChange(parseInt(el.value, 10)));
+    onChange(parseInt(el.value, 10));
+  }
+
+  bind('ai', v => {
+    setRing('ai', v);
+    document.querySelector('.metric:nth-of-type(1) .metric-text .value').textContent = aiLabel(v);
+  });
+  bind('plag', v => {
+    setRing('plag', v);
+    document.getElementById('plagText').textContent = plagLabel(v);
+  });
+  bind('trans', v => {
+    setRing('trans', v);
+    document.getElementById('transText').textContent = transLabel(v);
+  });
+
+  const wordsEl = document.getElementById('words');
+  const wcEl = document.getElementById('wordCount');
+  function updateWords() {
+    wcEl.textContent = countWords(wordsEl.value).toLocaleString('uk-UA').replace(/,/g, ' ');
+  }
+  wordsEl.addEventListener('input', updateWords);
+  updateWords();
+
+  const fnEl = document.getElementById('filename');
+  fnEl.addEventListener('input', () => {
+    document.getElementById('docTitle').textContent = fnEl.value || 'document';
+  });
+</script>
+</body>
+</html>
