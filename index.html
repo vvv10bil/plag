@@ -351,8 +351,8 @@
   <label for="filename">Назва файлу</label>
   <input class="filename-input" id="filename" type="text" value="coursework (1).docx">
 
-  <label for="words">Список слів (документ)</label>
-  <textarea id="words" placeholder="Вставте сюди текст або список слів...">Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua</textarea>
+  <label for="words">Кількість слів у документі</label>
+  <input class="filename-input" id="words" type="number" min="0" value="8864">
 
   <label>Перевірка ШІ
     <div class="slider-row ai">
@@ -405,11 +405,6 @@
     return 'Низький ризик плагіату';
   }
 
-  function countWords(text) {
-    const m = text.trim().match(/\S+/g);
-    return m ? m.length : 0;
-  }
-
   function bind(id, onChange) {
     const el = document.getElementById(id);
     el.addEventListener('input', () => onChange(parseInt(el.value, 10)));
@@ -432,7 +427,7 @@
   const wordsEl = document.getElementById('words');
   const wcEl = document.getElementById('wordCount');
   function updateWords() {
-    const n = countWords(wordsEl.value);
+    const n = parseInt(wordsEl.value, 10) || 0;
     wcEl.textContent = n.toLocaleString('uk-UA').replace(/,/g, ' ') + ' слів';
   }
   wordsEl.addEventListener('input', updateWords);
